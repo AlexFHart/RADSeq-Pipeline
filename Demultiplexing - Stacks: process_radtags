@@ -1,4 +1,5 @@
 # TESTING REFERENCE ALIGNMENT AS SUGGESTED IN "DERIVING GENOTYPES FROM RAD SHORT READ DATA USING STACKS"
+# bash script
 
 #!/bin/bash
 # process_radtags for the real deal data
