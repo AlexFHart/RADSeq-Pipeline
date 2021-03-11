@@ -1,0 +1,192 @@
+# R Script
+
+# LEA with extreme notes
+# code from:
+# http://membres-timc.imag.fr/Olivier.Francois/LEA/files/LEA_github.pdf
+# http://membres-timc.imag.fr/Olivier.Francois/LEA/files/LEA_1.html
+library(LEA)
+
+# data import: converting your vcfs to .genos and .lfmms for LEA to use
+# update the working directory to wherever is appropriate
+# then manually carry the files over afterwards
+# setwd("~/Documents/RADSeq Data/Stacks")
+# lapi_vcf <- "lapi_filtered.recode.vcf"
+# vcf2geno(lapi_vcf, 'lapi')
+# vcf2lfmm(lapi_vcf, 'lapi')
+# pasc_vcf <- "pasc_filtered.recode.vcf"
+# vcf2geno(pasc_vcf, 'pasc')
+# vcf2lfmm(pasc_vcf, 'pasc')
+
+# working directory
+setwd("~/Documents/Bioinformatics/R & Python Scripts/GLMM/agri:nat data")
+
+# PCA
+# this LEA function performs PCA calculations, and outputs an object of the pcaProject class
+# which contains a path to the results files (e.g eigenvector)
+# DO NOT SCALE THE DATA IT WILL CRASH
+lapi_PCA = pca("~/Documents/Bioinformatics/R & Python Scripts/GLMM/agri:nat data/lapi.lfmm")
+pasc_PCA = pca("~/Documents/Bioinformatics/R & Python Scripts/GLMM/agri:nat data/pasc.lfmm")
+
+# a statistical test called a Tracy-Widom is performed to normalise eigenvalues
+tw_lapi = tracy.widom(lapi_PCA)
+tw_pasc = tracy.widom(pasc_PCA)
+
+# then we use the knee method to estimate how many major components there are;
+# the no. of ancestral genetic clusters is closely related to the number of major components.
+plot(tw_lapi$percentage) # K = 4 
+plot(tw_pasc$percentage) # K = 3 
+
+# okay, lovely. now, SNMF.
+# SNMF does least-squares calculations for admixture proportions rather than
+# max likelihood like many other programs.
+project = snmf("~/Documents/Bioinformatics/R & Python Scripts/GLMM/agri:nat data/lapi.geno",
+               K = 1:10,
+               entropy = TRUE,
+               repetitions = 10,
+               project = "new")
+# to load use project = load.snmfProject("lapi.snmfProject")
+
+project = snmf("~/Documents/Bioinformatics/R & Python Scripts/GLMM/agri:nat data/pasc.geno",
+               K = 1:10,
+               entropy = TRUE,
+               repetitions = 10,
+               project = "new")
+# to load use project = load.snmfProject("pasc.snmfProject")
+
+# how can we use the SNMF data to estimate the number of ancestral pops?
+project = load.snmfProject("lapi.snmfProject")
+plot(project, col = "blue", pch = 19, cex = 1.2) # K = 1
+
+project = load.snmfProject("pasc.snmfProject")
+plot(project, col = "blue", pch = 19, cex = 1.2) # K = 1 here as well.
+# these results contrast slightly with the PCA results but match known literature.
+
+# if the no. of ancestral pops were >1 then we could display this with a Q-matrix
+# however in this case K = 1 for both pasc and lapi.
+# the code is commented below just in case.
+best = which.min(cross.entropy(project, K = 6))
+my.colors <- c("tomato", "lightblue",
+               "olivedrab", "gold", "grey", "blue", "black")
+barchart(project, K = 6, run = best,
+         border = NA, space = 0,
+         col = my.colors,
+         xlab = "Individuals",
+         ylab = "Ancestry proportions",
+         main = "Ancestry matrix") -> bp
+axis(1, at = 1:length(bp$order),
+     labels = bp$order, las=1,
+     cex.axis = .4)
+
+# population differentiation tests with SNMF data
+# these don't work when K = 1 but i have commented the code anyway
+# project = load.snmfProject("lapi.snmfProject")
+# p = snmf.pvalues(project,
+#                  entropy = TRUE,
+#                  ploidy = 2,
+#                  K = 3)
+# pvalues = p$pvalues
+# par(mfrow = c(2,1))
+# hist(pvalues, col = "orange")
+# plot(-log10(pvalues), pch = 19, col = "blue", cex = .5)
+# 
+# project = load.snmfProject("pasc.snmfProject")
+# p = snmf.pvalues(project,
+#                  entropy = TRUE,
+#                  ploidy = 2,
+#                  K = 3)
+# pvalues = p$pvalues
+# par(mfrow = c(2,1))
+# hist(pvalues, col = "orange")
+# plot(-log10(pvalues), pch = 19, col = "blue", cex = .5)
+
+# finally, LFMM tests of ecological association.
+# how do you decide what value of K to use? you can estimate it from the value at which the
+# cross-entropy in SNMF first plateaus. 
+# however, it's not actually necessary to have a "correct" K value for LFMM since part of
+# the process is calibration, and the end-result is correctly calibrated p-values.
+
+# getting a "correct" result involves several steps:
+# choosing a K-value -> 5-10 runs -> combine the values -> re-adjust p-values
+project = NULL
+project = lfmm("~/Documents/Bioinformatics/R & Python Scripts/GLMM/agri:nat data/lapi.lfmm",
+               "~/Documents/Bioinformatics/R & Python Scripts/GLMM/agri:nat data/lapi.env",
+               K = 4,
+               repetitions = 5,
+               project = "new")
+
+# note that simply changing the value of K will overwrite any other K values so it's best to 
+# make and save a histogram for each run before starting the next.
+# based on the lapi PCA i'll go to 5, and 4 for the pasc.
+# PROCESSING CODE SET 1 - automatic p-value and inflation adjustment
+# this next snippet of code combines the runs for the value of K and re-adjusts the p-values
+p = lfmm.pvalues(project, K = 4)
+pvalues = p$pvalues
+
+# this code corrects for multiple testing using the BH method
+for (alpha in c(.05,.1,.15,.2)) {
+  # expected FDR
+  print(paste("Expected FDR:", alpha))
+  L = length(pvalues)
+  # return a list of candidates with expected FDR alpha.
+  # Benjamini-Hochberg's algorithm:
+  w = which(sort(pvalues) < alpha * (1:L) / L)
+  candidates = order(pvalues)[w]
+  # estimated FDR and True Positive Rate
+  Lc = length(candidates)
+  estimated.FDR = sum(candidates <= 350)/Lc
+  print(paste("Observed FDR:",
+              round(estimated.FDR, digits = 2)))
+  par(mfrow = c(2,1))
+  hist(pvalues, col = "lightblue")
+  plot(-log10(pvalues), pch = 19, col = "blue", cex = .7)
+  estimated.TPR = sum(candidates > 350)/50
+  print(paste("Estimated TPR:",
+              round(estimated.TPR, digits = 2)))
+}
+
+# PROCESSING CODE SET 2 - manual p-value adjustment
+# p-values can also be manually adjusted if the histogram still looks dodge
+project = load.lfmmProject("lapi_lapi.lfmmProject")
+
+# manually adjust p-vals
+# Record z-scores from the 5 runs in the zs matrix
+# don't forget that each new value of K you do over-writes previous calculations
+# because fuck you, that's why
+zs = z.scores(project, K = 5) 
+
+#Combine z-scores using the median
+zs.median = apply(zs, MARGIN = 1, median)
+
+# genomic inflation factor (lamda) must be calculated to re-calibrate the p-values
+# the closer the value of lamda to 1, the better. 
+lambda = median(zs.median^2)/qchisq(0.5, df = 1)
+
+# applying the adjusted values
+adj.p.values = pchisq(zs.median^2/lambda, df = 1, lower = FALSE)
+hist(adj.p.values, col = "red")
+
+# we can see that this histogram is a bit dodge (maybe?) so we can manually change the lamda
+# over-flattening the p-values leads to far too many loci being considered significant
+# idek the auto-adjust option does a reasonable job tbh, at least with the available data
+adj.p.values = pchisq(zs.median^2/0.05, df = 1, lower = FALSE)
+hist(adj.p.values, col = "red")
+
+# multiple testing control
+# then we can control for FDR
+# L = number of loci
+L = 18404
+#FDR level q
+# change adj.p.values to pvalues if you are using the automated calibration
+q = 0.05
+w = which(sort(adj.p.values) < q * (1:L)/L)
+candidates.bh = order(adj.p.values)[w]
+
+# another method - the Storey method - which is less conservative, can be applied instead
+# and provide additional candidate loci.
+library(qvalue)
+plot(qvalue(adj.p.values))
+candidates.qv = which(qvalue(adj.p.values, fdr = .1)$signif)
+
+# write candidate lists to file
+write.csv(candidates.bh, "BH_candidates.txt")
+write.csv(candidates.qv, "Storey_candidates.txt")
