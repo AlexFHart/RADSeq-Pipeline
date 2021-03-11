@@ -1,0 +1,24 @@
+# bash script
+# remember that Stacks needs to be run twice; first to produce a partially-filtered VCF from which we make the blacklist
+# then a second time with said blacklist so that we have our fully-filtered results.
+
+# first run
+
+#!/bin/bash
+#PBS -l walltime=1:00:00
+#PBS -l nodes=1:ppn=8
+
+module load Stacks/2.5-iccifort-2019.5.281
+
+ref_map.pl -T 8 --samples /user/gent/427/vsc42733/BumbleBeeData/RADSeq/sorted/ \
+--popmap /user/gent/427/vsc42733/BumbleBeeScratch/BayeScEnv/stacks/bayescenv_lapi.txt \
+-o /user/gent/427/vsc42733/BumbleBeeData/ete_stacks/lapi/ \
+-X "populations:--min-samples-per-pop 0.5" \
+-X "populations:--min-maf 0.05" \
+-X "populations:--write-random-snp" \
+-X "populations:--ordered-export" \
+-X "populations:--vcf" -X "populations:--structure" \
+-X "populations:--fstats" \
+# -X "populations:--blacklist /user/gent/427/vsc42733/BumbleBeeData/ete_stacks/lapi_blacklist.txt" \
+
+# for the 2nd run, simply un-comment the line specifying the blacklist
