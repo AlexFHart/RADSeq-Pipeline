@@ -1,0 +1,11 @@
+# bash script
+# input in GESTE format (use PGD spider)
+
+#!/bin/bash
+# bayescan i guess
+#PBS -l walltime=8:00:00
+#PBS -l nodes=1:ppn=8
+
+module load BayeScEnv/1.1-GCC-8.3.0
+
+bayescenv /user/gent/427/vsc42733/BumbleBeeData/ete_stacks/lapi.GESTE -env lapi_env.txt -o lapi -nbp 10 -pilot 2000 -thin 10 -n 5000 -burn 10000
