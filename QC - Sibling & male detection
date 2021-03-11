@@ -1,0 +1,26 @@
+# bash scripts for VCFtools
+# detection of high levels of homozygosity; males will be homozygous (or close too it due to sequencing error)
+
+module load VCFtools/0.1.16-intel-2018b-Perl-5.28.0
+
+vcftools --vcf /user/gent/427/vsc42733/BumbleBeeData/ete_stacks/pasc/populations.snps.vcf \
+--het --out pasc
+
+# sibling detection
+# each command needs to be written to reflect natural populations (e.g by year and by location)
+
+#!/bin/bash
+#PBS -l walltime=00:05:00
+
+# it takes like 5 seconds in total
+# but i'm an angel so i will not abuse the login node :angel_emoji:
+
+# now with freaky samples removed!
+module load VCFtools
+
+# wait can u just use vcf tools for relatedness after all??
+# do it by country
+# good ol' belgie
+vcftools --vcf /user/gent/427/vsc42733/BumbleBeeScratch/kinship/populations.snps.vcf \
+--indv Be12.sorted --indv Be21.sorted --indv Be3.sorted --indv Be41.sorted \
+--out belgie.lapi --relatedness
