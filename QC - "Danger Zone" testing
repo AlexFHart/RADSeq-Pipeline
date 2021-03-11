@@ -1,0 +1,24 @@
+# first VCFtools, which you can run on the login server, then R Script
+# you will need the alignment stats for each sample, which are output by bowtie2. I put them in a big excel file
+# actually. it looks like you only need the idepth file produced by VCFtools... but the stats are still nice to have haha
+
+module load VCFtools/0.1.16-intel-2018b-Perl-5.28.0
+
+vcftools --vcf populations.snps.vcf --depth
+
+
+# R script
+# Frederik's sequencing "Danger Zone" test
+# read depth vs. tag count
+
+setwd("~/Documents/RADSeq Data/QC/end-to-end/")
+library(ggplot2)
+
+stats <- read.csv("alignment stats.csv")
+lapi_depth <- read.table("lapi.out.idepth", sep = "\t", header = TRUE)
+pasc_depth <- read.table("pasc.out.idepth", sep = "\t", header = TRUE)
+data <- rbind.data.frame(lapi_depth, pasc_depth)
+
+
+ggplot(data, aes(x = MEAN_DEPTH, y = N_SITES)) + geom_point()
+quantile(data$MEAN_DEPTH, c(0.1, 0.2, 0.3, 0.4, 0.5))
