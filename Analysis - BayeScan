@@ -1,0 +1,20 @@
+# bash script
+
+# How do I get my data in the BayeScan format?
+
+# Use Stacks to generate a STRUCTURE file
+# Import the STRUCTURE file using cyberduck/filezilla.
+# DO NOT OPEN THE FILE!!!
+# In finder, rename the file to whatever.txt
+# In textedit, remove the file header
+# Use PDG spider to convert into the correct format. This can take a while (for test data #2 it took over half an hour)
+
+#!/bin/bash
+#PBS -l walltime=6:00:00
+#PBS -l nodes=1:ppn=8
+# i swear i can never get this to work via script
+
+module load BayeScan/2.1-intel-2018a
+
+bayescan_2.1 /user/gent/427/vsc42733/BumbleBeeData/ete_stacks/lapi.GESTE \
+-threads 8 -od /user/gent/427/vsc42733/BumbleBeeData/ete_stacks/bayescan/lapi/
