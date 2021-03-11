@@ -3,6 +3,8 @@
 # THIS NEEDS TO REFLECT OUR DATA!!!
 # DON'T USE THIS CODE UNTIL IT'S BEEN UPDATED PLEASE!
 
+# bash script
+
 #!/bin/bash
 #PBS -l walltime=8:00:00
 #PBS -l nodes=1:ppn=4
