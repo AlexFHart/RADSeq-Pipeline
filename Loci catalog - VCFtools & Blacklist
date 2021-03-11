@@ -1,0 +1,44 @@
+# VCFtools has to be run via the login server
+
+module load VCFtools/0.1.16-intel-2018b-Perl-5.28.0 
+
+vcftools --vcf /user/gent/427/vsc42733/BumbleBeeData/ete_stacks/pasc/populations.snps.vcf \
+--out pasc_testje --max-meanDP 70 --max-missing 0.25 --removed-sites
+
+
+# then, take that output and put it into R; you will also need populations.sumstats.csv from Stacks.
+# here's the R script:
+
+# generate a blacklist worthy of mordor
+# convert VCFtools output coords to stacks catalog number
+setwd("~/Documents/Bioinformatics/R & Python Scripts/blacklist conversion")
+library(dplyr)
+
+# input blacklist
+# input <- read.csv("pasc_testje.csv", sep = ",")
+# TEST INPUT
+input <- data.frame("CHROMO" = c("NC_015762.1", "NC_015762.1", "NW_003570918.1"),
+                    "POS" = c(302362, 1731846, 1586))
+
+# input populations sumstats tsv
+# just an example sumstats
+sumstats <- read.table("~/Documents/RADSeq Data/BayeScan & BayeScEnv/crap/gradient/pasc.sumstats.tsv")
+
+sumstats <- sumstats[ , c("V1", "V2", "V3")]
+sumstats <- unique(sumstats)
+
+sapply(sumstats, class)
+# sapply(input, class)
+# input$POS <- as.integer(input$POS)
+
+# if input$chrom matches sumstats$V2 AND input$pos matches sumstats$v3 then save
+
+listje <- NA
+
+listje <- sumstats %>% semi_join(input, by = c("V2" = "CHROMO", "V3" = "POS"))
+
+# then in the interests of speed you can just delete the extra column in excel
+
+
+
+
