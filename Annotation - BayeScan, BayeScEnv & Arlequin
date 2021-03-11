@@ -1,0 +1,130 @@
+# R Scripts for converting program results into useful lists of genes/annotations
+# you will need to download a copy of the genome annotation file for your reference genome
+
+# annotation for both BayeScan and BayeScEnv outputs :)
+library(ape)
+library(plyr)
+library(dplyr)
+library(stringr)
+library(tidyverse)
+setwd("~/Documents/RADSeq Data/BayeScan & BayeScEnv/End-to-End/post-processing & annotation")
+
+
+# first, load the annotation data:
+anno <- read.gff("~/Documents/Bioinformatics/R & Python Scripts/Fake Data BayeScan/gff3/Bombus_terrestris.Bter_1.0.44.gff3")
+anno <- subset(anno, select = -c(source, score, strand, phase))
+anno <- anno %>% filter(type == "gene")
+
+anno$locus <- substr(anno$attributes, 9, 20)
+anno <- subset(anno, select = -c(attributes, type))
+
+
+# nice! okay, now load in your data:
+lapi_bayescan <- read.csv("bayescan_lapi.output.csv")
+lapi_bayescenv <- read.csv("bayescenv_lapi.output.csv")
+pasc_bayescan <- read.csv("bayescan_pasc.output.csv")
+pasc_bayescenv <- read.csv("bayescenv_pasc.output.csv")
+
+# selecting only significant records
+# threshold for bayescan set at prob >= 0.9
+lapi_bayescan <- subset(lapi_bayescan, lapi_bayescan$prob >=0.9)
+pasc_bayescan <- subset(pasc_bayescan, pasc_bayescan$prob >=0.9)
+# threshold for bayescenv set at qval_g <= 0.05
+lapi_bayescenv <-subset(lapi_bayescenv, lapi_bayescenv$qval_g <= 0.05)
+pasc_bayescenv <-subset(pasc_bayescenv, pasc_bayescenv$qval_g <= 0.05)
+
+# now we're gonna convert the location on the chromosome into a locus name
+convert <- read.csv("~/Documents/Bioinformatics/R & Python Scripts/Fake Data BayeScan/conversion_codes.csv", header = TRUE, sep = ';')
+convert$new.code <- str_sub(convert$new.code, 1, str_length(convert$new.code)-2)
+
+lapi_bayescan_results <- inner_join(lapi_bayescan, convert, by = c('Linkage.Group' = 'old.code'))
+lapi_bayescan_results <- inner_join(lapi_bayescan_results, anno, by = c('new.code' = 'seqid'))
+lapi_bayescan_results <- filter(lapi_bayescan_results, lapi_bayescan_results$Location..bp. >= lapi_bayescan_results$start & lapi_bayescan_results$Location..bp. <= lapi_bayescan_results$end)
+
+pasc_bayescan_results <- inner_join(pasc_bayescan, convert, by = c('Linkage.Group' = 'old.code'))
+pasc_bayescan_results <- inner_join(pasc_bayescan_results, anno, by = c('new.code' = 'seqid'))
+pasc_bayescan_results <- filter(pasc_bayescan_results, pasc_bayescan_results$Location..bp. >= pasc_bayescan_results$start & pasc_bayescan_results$Location..bp. <= pasc_bayescan_results$end)
+
+lapi_bayescenv_results <- inner_join(lapi_bayescenv, convert, by = c('Linkage.Group' = 'old.code'))
+lapi_bayescenv_results <- inner_join(lapi_bayescenv_results, anno, by = c('new.code' = 'seqid'))
+lapi_bayescenv_results <- filter(lapi_bayescenv_results, lapi_bayescenv_results$Location..bp. >= lapi_bayescenv_results$start & lapi_bayescenv_results$Location..bp. <= lapi_bayescenv_results$end)
+
+pasc_bayescenv_results <- inner_join(pasc_bayescenv, convert, by = c('Linkage.Group' = 'old.code'))
+pasc_bayescenv_results <- inner_join(pasc_bayescenv_results, anno, by = c('new.code' = 'seqid'))
+pasc_bayescenv_results <- filter(pasc_bayescenv_results, pasc_bayescenv_results$Location..bp. >= pasc_bayescenv_results$start & pasc_bayescenv_results$Location..bp. <= pasc_bayescenv_results$end)
+
+# then trim off all the extra columns we don't need
+lapi_bayescan_results <- subset(lapi_bayescan_results, select = c(prob, locus))
+pasc_bayescan_results <- subset(pasc_bayescan_results, select = c(prob, locus))
+lapi_bayescenv_results <- subset(lapi_bayescenv_results, select = c(qval_g, locus))
+pasc_bayescenv_results <- subset(pasc_bayescenv_results, select = c(qval_g, locus))
+
+# and print out the results!
+write.csv(lapi_bayescan_results, "lapi_bayescan_results.csv")
+write.csv(pasc_bayescan_results, "pasc_bayescan_results.csv")
+write.csv(lapi_bayescenv_results, "lapi_bayescenv_results.csv")
+write.csv(pasc_bayescenv_results, "pasc_bayescenv_results.csv")
+
+# https://biodbnet-abcc.ncifcrf.gov/db/dbAnnot.php
+
+
+
+
+# Arlequin post-processing
+library(ape)
+library(plyr)
+library(dplyr)
+library(stringr)
+library(tidyverse)
+
+setwd("~/Documents/RADSeq Data/Arlequin/Re__arlequin_pasc")
+
+# remove the comment in brackets on the first line using a text editor
+pasc <- read.table("pascfdist2_OBsOut.txt", sep="\t", header = TRUE)
+pasc_results <- pasc[which(pasc$FST.P.value <= 0.05), ]
+
+setwd("~/Documents/RADSeq Data/Stacks/end-to-end")
+sumstats <- read.csv("pasc.sumstats.csv")
+
+arl_results <- sumstats[pasc_results$Locus, ]
+
+# what about gene annotation?
+anno <- read.gff("~/Documents/Bioinformatics/R & Python Scripts/Fake Data BayeScan/gff3/Bombus_terrestris.Bter_1.0.44.gff3")
+anno <- subset(anno, select = -c(source, score, strand, phase))
+anno <- anno %>% filter(type == "gene")
+
+anno$locus <- substr(anno$attributes, 9, 20)
+anno <- subset(anno, select = -c(attributes, type))
+
+convert <- read.csv("~/Documents/Bioinformatics/R & Python Scripts/Fake Data BayeScan/conversion_codes.csv", header = TRUE, sep = ';')
+
+# remove the superfluous .1's at the end of the anno codes]
+convert$new.code <- str_sub(convert$new.code, 1, str_length(convert$new.code)-2)
+
+# convert the IDs
+results <- inner_join(coords, convert, by = c('Linkage.Group' = 'old.code'))
+results <- inner_join(results, anno, by = c('new.code' = 'seqid'))
+
+results <- filter(results, results$Location..bp. >= results$start & results$Location..bp. <= results$end)
+# why are there fewer results than co-ordinates? some co-ordinates fall outside the range of a gene.
+
+# ok look i fucked it up just read your own sumstats in and figure out the rest please.
+# for now...
+
+results <- read.csv("arlequin_results.csv")
+
+
+# --- i dunno wat i'm looking at so i'm gonna visualise it ---
+library(ggplot2)
+
+data <- lapi_results
+
+# (1:nrow(data)
+
+ggplot() +
+  geom_point(mapping = aes(x = data$Obs.FST), y = ((data$Obs..Het..BP)/(1 - data$Obs.FST)), colour = data$Locus, 
+             show.legend = FALSE) +
+  geom_line(mapping = aes(x = data$Obs.FST), y = ((data$Obs..Het..BP)/(1 - data$Obs.FST)), show.legend = FALSE) +
+  geom_hline(yintercept = 0.91, size = 0.5) +
+  xlab("Locus number") 
+  # ylab("PEP q-value + Fst")
