@@ -4,11 +4,11 @@ this is a series of bash scripts, R scripts and terminal commands intended to pr
 they are intended specifically for use the the Flemish Supercomputer Centre (VSC) high-performance compute cluster (HPC) and will likely not work elsewhere.
 
 Approximate order of operations;
-Demultiplexing
-Data cleaning
-Read alignment
-Alignment sorting
-Loci catalog
-QC
-Analysis
-Annotation
+  1. Demultiplexing
+  2. Data cleaning
+  3. Read alignment
+  4. Alignment sorting
+  5. Loci catalog
+  6. QC
+  7. Analysis
+  8. Annotation
