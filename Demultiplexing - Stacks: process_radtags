@@ -1,12 +1,11 @@
-# TESTING REFERENCE ALIGNMENT AS SUGGESTED IN "DERIVING GENOTYPES FROM RAD SHORT READ DATA USING STACKS"
-# bash script
+# turns out the barcodes have the cut site in them, significant oof
 
 #!/bin/bash
-# process_radtags for the real deal data
-#PBS -l walltime=3:00:00
-
+# process_radtags for 2021 data 
+#PBS -l walltime=12:00:00
+ 
 module load Stacks/2.0-foss-2018a
 
-process_radtags -f /data/gent/vo/001/gvo00109/vsc42733/RADSeq/RADSeq2019.fastq.gz \
--b /data/gent/vo/001/gvo00109/vsc42733/RADSeq/barcodes.txt \
--o /user/gent/427/vsc42733/BumbleBeeScratch/radtags/radtags1 -e pstI -c -r -q
+process_radtags -f /user/gent/427/vsc42733/BumbleBeeData/RawRADSeqData/2021/Lane_1/lane1plate1.fastq.gz \
+-b /user/gent/427/vsc42733/BumbleBeeData/RawRADSeqData/2021/plate1barcodes.txt \
+-o /user/gent/427/vsc42733/BumbleBeeData/RawRADSeqData/2021/Lane_1/demultiplexed/plate1 -e pstI -c -r -q
