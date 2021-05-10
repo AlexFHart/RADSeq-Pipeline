@@ -1,0 +1,23 @@
+# JARO! remember to update the pop map to remove the low quality samples, the siblings, and the males from the pop map as we discussed.
+# you can either directly edit the file on the supercomputer by opening it with nano
+# or download it, edit it on your own PC and reupload it.
+# good luck!
+
+# Jaro data actual ref_map
+#!/bin/bash
+#PBS -l walltime=03:00:00
+#PBS -l nodes=1:ppn=8
+
+module load Stacks/2.5-iccifort-2019.5.281
+
+ref_map.pl -T 8 --samples /data/gent/vo/001/gvo00109/BumbleBeeShare/Jaro/sorted/  \
+--popmap /data/gent/vo/001/gvo00109/BumblebeeShare/Jaro/prefilter_stacks/pop_map_sites.txt \
+-o /user/gent/427/vsc42733/BumbleBeeData/BumblebeeShare/Jaro/stacks/ \
+-X "populations:--blacklist /data/gent/vo/001/gvo00109/BumblebeeShare/Jaro/prefilter_stacks/jaro_blacklist.txt" \
+-X "populations:--min-samples-per-pop 0.5" \
+-X "populations:--min-maf 0.05" \
+-X "populations:--write-random-snp" \
+-X "populations:--ordered-export" \
+-X "populations:--vcf" \
+-X "populations:--structure" \
+-X "populations:--fstats" \
