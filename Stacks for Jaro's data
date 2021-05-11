@@ -32,7 +32,7 @@ ref_map.pl -T 8 --samples /data/gent/vo/001/gvo00109/BumbleBeeShare/Jaro/sorted/
 
 module load Stacks/2.5-iccifort-2019.5.281
 
-ref_map.pl -T 8 --samples /data/gent/vo/001/gvo00109/BumbleBeeShare/Jaro/sorted/  \
+ref_map.pl -T 8 --samples /data/gent/440/vsc44080/Jaro/sorted/  \
 --popmap /user/gent/440/vsc44080/filtered_female_stacks/pop_map_location_filtered_female.txt \
 -o /user/gent/440/vsc44080/filtered_female_stacks/ \
 -X "populations:--blacklist /user/gent/440/vsc44080/jaro_blacklist.txt" \
@@ -43,3 +43,4 @@ ref_map.pl -T 8 --samples /data/gent/vo/001/gvo00109/BumbleBeeShare/Jaro/sorted/
 -X "populations:--vcf" \
 -X "populations:--structure" \
 -X "populations:--fstats" \
+
