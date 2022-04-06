@@ -24,3 +24,7 @@ module load VCFtools
 vcftools --vcf /user/gent/427/vsc42733/BumbleBeeScratch/kinship/populations.snps.vcf \
 --indv Be12.sorted --indv Be21.sorted --indv Be3.sorted --indv Be41.sorted \
 --out belgie.lapi --relatedness
+
+vcftools --vcf /user/gent/427/vsc42733/BumbleBeeScratch/kinship/populations.snps.vcf \
+--indv Be12.sorted --indv Be21.sorted --indv Be3.sorted --indv Be41.sorted \
+--out belgie.lapi --relatedness2
