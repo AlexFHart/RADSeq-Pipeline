@@ -1,5 +1,6 @@
 # bash script
 # input in GESTE format (use PGD spider)
+# environmental data is normalised to between 1 and 0 - see BayeScEnv manual for more details
 
 #!/bin/bash
 # bayescan i guess
