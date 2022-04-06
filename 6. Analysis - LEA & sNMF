@@ -76,6 +76,9 @@ barchart(project, K = 6, run = best,
 axis(1, at = 1:length(bp$order),
      labels = bp$order, las=1,
      cex.axis = .4)
+     
+# the TW test and the sNMF tests should be interpreted together to help assign species
+# the code below is for later analysis
 
 # population differentiation tests with SNMF data
 # these don't work when K = 1 but i have commented the code anyway
