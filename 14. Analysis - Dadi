@@ -1,0 +1,136 @@
+# preamble
+import os
+import dadi
+
+os.chdir("/Users/alex/Documents/Bioinformatics/R & Python Scripts/dadi")
+
+os.getcwd()
+
+# data import
+vcf = 'pasc.snps.vcf'
+
+# obviously update the pop map file based on species
+dd = dadi.Misc.make_data_dict_vcf(vcf, 'pasc_agrinat_pop_map.txt')
+
+# specify a pop map to dadi, [73] for lapi,[97] for pasc
+pop_ids, ns = ['metapop'], [97]
+
+# make a frequency spectrum and fold it 
+fs = dadi.Spectrum.from_data_dict(dd, pop_ids, ns)
+
+fs_folded = dadi.Spectrum.from_data_dict(dd, pop_ids, ns, polarized=False)
+fs_folded.to_file('pasc.fs')
+
+# we can visualise the 1d fs but it doesn't tell us a huge amount right now
+# doesn't work for unfolded because we have no outgroup -> data is not "polarised"
+# i /think/ it's frequency of SNP bins? or SNP density bins or something
+import matplotlib.pyplot as pyplot
+
+pyplot.figure()
+dadi.Plotting.plot_1d_fs(fs_folded)
+
+# REGULAR MODEL SETUP
+# import numpy as np
+
+data = dadi.Spectrum.from_file('pasc.fs')
+
+# pick the model
+# growth has 2: nu (ratio of contemp. to ancient pop size), and T, time since change in units of 2*Na generations
+func = dadi.Demographics1D.growth
+
+# we can try a few grid settings but they should be relatively stable between models
+pts_l = [100, 120, 140]
+
+# specifying param limits
+# here we set some limits to the optimisation algorithms so that they don't try weird shit that 
+# takes forever to calculate
+# ddon't forget to change the number of these to reflect the number of params
+upper_bound = [100,100]
+lower_bound = [0,0]
+
+# arbitrary guesses of initial params
+p0 = [22.4269, 0.552295]
+
+# make the "extrapolating" version of our model
+# this is to avoid some infinite math problems
+func_ex = dadi.Numerics.make_extrap_log_func(func)
+
+# and "perturb" our parameters before optimisation?
+p0 = dadi.Misc.perturb_params(p0, fold=1, upper_bound=upper_bound,
+                              lower_bound=lower_bound)
+                              
+# optimization. 
+# run optimization several times using multiple sets of intial parameters, 
+# to be confident you've actually found the true maximum likelihood parameters.
+print('Beginning optimization ************************************************')
+popt = dadi.Inference.optimize_log(p0, data, func_ex, pts_l, 
+                                   lower_bound=lower_bound,
+                                   upper_bound=upper_bound,
+                                   verbose=len(p0), maxiter=100)
+# The verbose argument controls how often progress of the optimizer should be
+# printed. It's useful to keep track of optimization process.
+print('Finshed optimization **************************************************')
+
+# cute! okay! 
+# what now?
+# you'll need to re-run the params a few times to get the perfect set okay!
+
+# ideal params:
+# update the variable with the optimisation output, dummy
+popt = [22.4269, 0.552295]
+print('Best-fit parameters: {0}'.format(popt))
+
+# Calculate the best-fit model AFS.
+model = func_ex(popt, ns, pts_l)
+# Likelihood of the data given the model AFS.
+ll_model = dadi.Inference.ll_multinom(model, data)
+print('Maximum log composite likelihood: {0}'.format(ll_model))
+# The optimal value of theta given the model.
+theta = dadi.Inference.optimal_sfs_scaling(model, data)
+print('Optimal value of theta: {0}'.format(theta))
+
+# Plot a comparison of the resulting fs with the data.
+import pylab
+pylab.figure(figsize=(8,6))
+dadi.Plotting.plot_1d_comp_multinom(model, data)
+# Save the figure
+# pylab.savefig('growth7.png', dpi=250)
+
+# right-o, now we gotta shit out stdevs and CIs for the params.
+
+# first bootstrap the data
+Nboot, chunk_size = 100, 2e6
+chunks = dadi.Misc.fragment_data_dict(dd, chunk_size)
+boots = dadi.Misc.bootstraps_from_dd_chunks(chunks, Nboot, pop_ids, ns)
+
+# GIM uncertainty
+import dadi.Godambe
+
+all_boot = boots
+
+uncerts = dadi.Godambe.GIM_uncert(func_ex, pts_l, all_boot, popt, data, 
+                                  multinom=True)
+                                  
+print('Estimated parameter standard deviations from GIM: {0}'.format(uncerts))
+
+# For comparison, we can estimate uncertainties with the Fisher Information
+# Matrix, which doesn't account for linkage in the data and thus underestimates
+# uncertainty. (Although it's a fine approach if you think your data is truly
+# unlinked.)
+uncerts_fim = dadi.Godambe.FIM_uncert(func_ex, pts_l, popt, data, multinom=True)
+print('Estimated parameter standard deviations from FIM: {0}'.format(uncerts_fim))
+
+print('Factors by which FIM underestimates parameter uncertainties: {0}'.format(uncerts/uncerts_fim))
+
+# neutral model for easy reference
+from numpy import array
+
+neutral_func = dadi.Demographics1D.snm
+neutral_params = array([])
+neutral_upper_bound = []
+neutral_func_ex = dadi.Numerics.make_extrap_log_func(neutral_func)
+neutral_model = neutral_func_ex(neutral_params, ns, pts_l)
+neutral_ll = dadi.Inference.ll_multinom(neutral_model, fs_folded)
+
+print("Neutral model log-likelihood: %f" % neutral_ll)
+
