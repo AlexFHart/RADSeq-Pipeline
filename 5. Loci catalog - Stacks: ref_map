@@ -1,0 +1,42 @@
+# bash script
+# remember that Stacks needs to be run twice; first to produce a partially-filtered VCF from which we make the blacklist
+# then a second time with said blacklist so that we have our fully-filtered results.
+
+# first run
+
+# pipeline pre-check - stacks 1, species IDing
+# no filtering options because cross-species stuff will get messy
+# #!/bin/bash
+#PBS -l walltime=1:00:00
+#PBS -l nodes=1:ppn=8
+
+module load Stacks/2.5-iccifort-2019.5.281
+
+ref_map.pl -T 8 --samples /user/gent/427/vsc42733/BumbleBeeData/sorted/ \
+--popmap /user/gent/427/vsc42733/data/pop_maps/check_country.txt \
+-o /user/gent/427/vsc42733/BumbleBeeData/stacks_species/ \
+-X "populations:--write-random-snp" \
+-X "populations:--ordered-export" \
+-X "populations:--vcf" \
+-X "populations:--fstats" \
+
+# second run - after species ID and after generating a blacklist
+
+# lapidarius
+#!/bin/bash
+#PBS -l walltime=06:00:00
+#PBS -l nodes=1:ppn=8
+
+module load Stacks/2.5-iccifort-2019.5.281
+
+ref_map.pl -T 8 --samples /user/gent/427/vsc42733/BumbleBeeData/RawRADSeqData/bp_sorted/ \
+--popmap /user/gent/427/vsc42733/BumbleBeeData/Analysis/stacks/lapi_subpops/lapi_subpops_pop_map.txt \
+-o /user/gent/427/vsc42733/BumbleBeeData/Analysis/stacks/lapi_subpops/ \
+-X "populations:--blacklist /user/gent/427/vsc42733/BumbleBeeData/Analysis/stacks/lapi/lapi_blacklist.txt" \
+-X "populations:--min-samples-per-pop 0.5" \
+-X "populations:--min-maf 0.05" \
+-X "populations:--write-random-snp" \
+-X "populations:--ordered-export" \
+-X "populations:--vcf" \
+-X "populations:--structure" \
+-X "populations:--fstats" \
